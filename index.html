@@ -55,6 +55,13 @@ canvas{width:100%;height:auto;display:block;border-radius:14px;background:#fff;b
 .roster .av img{width:100%;height:100%;object-fit:cover}
 .hint{font-size:13px;color:var(--muted)}
 ul.how{line-height:1.6;padding-left:20px}
+#tip{position:fixed;z-index:4;display:none;background:#fff;border:2px solid var(--accent);color:var(--ink);font-size:17px;padding:8px 14px;border-radius:14px;box-shadow:0 4px 14px rgba(90,60,30,.22);pointer-events:none;text-align:center;max-width:240px;animation:tipbob 1s ease-in-out infinite}
+#tip.on{display:block}
+#tip small{display:block;font-size:12px;color:var(--muted)}
+#tip:after{content:'';position:absolute;left:var(--ax,50%);bottom:-11px;margin-left:-10px;border:10px solid transparent;border-bottom:0;border-top-color:var(--accent)}
+@keyframes tipbob{50%{transform:translateY(-5px)}}
+#bar button.pulse{border-color:var(--accent);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 5px rgba(226,122,59,.35)}}
 #bar{user-select:none;-webkit-user-select:none}
 #bar button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 #bar em.c{display:none;font-style:normal;font-size:11px;color:var(--muted)}
@@ -73,6 +80,7 @@ ul.how{line-height:1.6;padding-left:20px}
  #bar .t small{display:none}
  #bar em.c{display:block}
  #bar kbd{display:none}
+ #tip{font-size:14px;padding:6px 10px;max-width:200px}
 }
 @media (max-width:640px){
  .kidrow{grid-template-columns:54px 1fr 1fr;}
@@ -90,6 +98,7 @@ ul.how{line-height:1.6;padding-left:20px}
  <div id="bar"></div>
  <p class="hint">Keys: 1 2 3 send helpers · T turret · S special · E next age · P pause · F speed · M music. On a phone, turn it sideways.</p>
 </div>
+<div id="tip"></div>
 <div id="ov"></div>
 <script>
 const W = 1280, H = 560, GROUND = 472, P_FRONT = 166, K_FRONT = 1112, TAU = Math.PI * 2;
@@ -333,6 +342,7 @@ function buyUnit(i) {
   const def = AGES[G.age].units[i];
   if (!def || G.gold < def.cost || G.queue.length >= 5) return;
   G.gold -= def.cost;
+  G.tipDone = true;
   G.queue.push({ def, t: def.train });
   beep(520, 0.06, 'triangle');
 }
@@ -1072,7 +1082,20 @@ function buildBar() {
     '<button data-act="speed" id="spd"></button><button data-act="pause" id="pa"></button><button data-act="sound" id="snd"></button><button data-act="music" id="mus"></button>';
 }
 buildBar();
+function placeTip() {
+  const tip = $('#tip'), btn = $('#u0');
+  const show = G && !G.tipDone && G.state === 'play' && !paused && ov.classList.contains('hide') && btn;
+  if (!show) { tip.classList.remove('on'); btn && btn.classList.remove('pulse'); return; }
+  tip.innerHTML = '👇 Tap <b>' + esc(S.gm) + '</b> to send her out!' + (matchMedia('(pointer:coarse)').matches ? '' : '<small>or press 1</small>');
+  tip.classList.add('on'); btn.classList.add('pulse');
+  const r = btn.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
+  const left = Math.max(8, Math.min(innerWidth - tw - 8, r.left + r.width / 2 - tw / 2));
+  tip.style.left = left + 'px';
+  tip.style.top = Math.max(8, r.top - th - 14) + 'px';
+  tip.style.setProperty('--ax', (r.left + r.width / 2 - left) + 'px');
+}
 function uiTick() {
+  placeTip();
   if (!G) return;
   const age = AGES[G.age], playing = G.state === 'play' && !paused;
   age.units.forEach((def, i) => {
