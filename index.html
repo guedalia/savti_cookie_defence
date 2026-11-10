@@ -766,12 +766,32 @@ function drawCupboard() {
 }
 
 function drawAirFryer(x, y) {
-  ctx.fillStyle = '#2b2f34'; rr(x - 17, y - 44, 34, 40, 8); ctx.fill();
-  ctx.fillStyle = '#3d434a'; rr(x - 14, y - 22, 28, 16, 4); ctx.fill();
-  ctx.fillStyle = '#9aa3ad'; ctx.fillRect(x - 7, y - 16, 14, 4);
-  ctx.fillStyle = '#ff7a3c'; ctx.fillRect(x - 9, y - 38, 18, 7);
-  ctx.fillStyle = '#ffffff'; ctx.font = 'bold 6px Segoe UI'; ctx.textAlign = 'center'; ctx.fillText('200°', x, y - 32.5);
-  circle(x, y - 26, 2.2, '#c3cad3');
+  const x0 = x - 21, x1 = x + 21, top = y - 26, now = performance.now() / 1000;
+  ctx.save(); ctx.translate(x1, top); ctx.rotate(1.15);
+  ctx.fillStyle = '#26292d'; rr(-42, -12, 42, 12, 6); ctx.fill(); ctx.fillRect(-42, -4, 42, 4);
+  ctx.fillStyle = '#4a5058'; ctx.fillRect(-40, -1, 38, 2);
+  ctx.restore();
+  ctx.fillStyle = '#ff9a4a'; ctx.fillRect(x0 + 3, top - 2, x1 - x0 - 6, 3);
+  ctx.strokeStyle = '#9aa3ad'; ctx.lineWidth = 1;
+  for (let gx = x0 + 6; gx < x1 - 4; gx += 5) { ctx.beginPath(); ctx.moveTo(gx, top - 2); ctx.lineTo(gx, top + 1); ctx.stroke(); }
+  ctx.fillStyle = '#26292d'; ctx.fillRect(x0, top, x1 - x0, 8);
+  ctx.fillStyle = '#4a5058'; rr(x0, top + 7, x1 - x0, y - top - 7, 3); ctx.fill();
+  ctx.fillStyle = '#e6ebf0'; ctx.font = 'italic 900 8px Arial Black, Segoe UI'; ctx.textAlign = 'center'; ctx.fillText('NINJA', x - 4, top + 16);
+  for (let i = 0; i < 3; i++) circle(x0 + 12 + i * 9, y - 5, 1.4, '#ff7a3c');
+  circle(x1 - 6, top + 13, 2, '#f2b134');
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 3; i++) {
+    const ph = (now * 0.6 + i / 3) % 1, bx = x0 + 9 + i * 10;
+    ctx.strokeStyle = 'rgba(255,140,60,' + (0.55 * (1 - ph)).toFixed(3) + ')';
+    ctx.beginPath();
+    for (let k = 0; k <= 10; k++) { const yy = top - 4 - ph * 20 - k * 2.4, xx = bx + Math.sin(k * 0.9 + now * 6 + i) * 2.5; k ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy); }
+    ctx.stroke();
+  }
+  for (let i = 0; i < 4; i++) {
+    const ph = (now * 0.4 + i / 4) % 1;
+    ctx.fillStyle = 'rgba(255,255,255,' + (0.75 * (1 - ph)).toFixed(3) + ')';
+    ctx.beginPath(); ctx.arc(x - 6 + i * 5 + Math.sin(now * 2 + i * 1.7) * 5 * ph, top - 8 - ph * 50, 3 + ph * 9, 0, TAU); ctx.fill();
+  }
 }
 function drawMiniSmoker(x, y, def) {
   const x0 = x - 21, x1 = x + 21, top = y - 50, body = y - 24, now = performance.now() / 1000;
