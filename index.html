@@ -699,7 +699,7 @@ function drawSmoker(b) {
   b.fillStyle = '#26292d'; b.fillRect(x1 - 32, top - 18, 26, 5);
   b.fillStyle = '#f2b134'; b.beginPath(); b.arc(x0 + 12, body - 6, 3, 0, TAU); b.fill();
   b.fillStyle = '#ff7a3c'; for (let i = 0; i < 4; i++) { b.beginPath(); b.arc(x0 + 30 + i * 12, body - 6, 2, 0, TAU); b.fill(); }
-  b.fillStyle = '#e6ebf0'; b.font = 'bold 9px Segoe UI'; b.textAlign = 'center'; b.fillText('WOODFIRE', SM_X, top + 22);
+  b.fillStyle = '#e6ebf0'; b.font = 'italic 900 14px Arial Black, Segoe UI'; b.textAlign = 'center'; b.fillText('NINJA', SM_X, top + 20);
 }
 function drawSmoke() {
   const t = performance.now() / 1000, vx = SM_X + 27, vy = GROUND - 172;
