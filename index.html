@@ -392,6 +392,7 @@ function hit(tgt, dmg, src) {
   }
 }
 function putToSleep(u) {
+  u.onChair = false; u.atMixer = false; u.climbT = 0; u.lift = 0;
   u.asleep = true; u.sleepT = 1.6; u.bubble = null;
   if (u.side === 'k') {
     G.gold += u.def.gold; G.xp += u.def.xp; G.stats.asleep++;
@@ -455,6 +456,25 @@ function stepUnit(u, dt) {
       return;
     }
   }
+  const mixSavti = G.units.find(o => o.atMixer && !o.asleep);
+  if (u.onChair) {
+    if (!mixSavti) { u.onChair = false; u.lift = 0; }
+    else { u.lift = Math.min(30, (u.lift || 0) + dt * 90); return; }
+  }
+  if (u.side === 'k' && mixSavti && !u.chairDone && u.x >= MIX_X && u.x <= MIX_X + 70) {
+    u.chairDone = true;
+    if (!G.units.some(o => o.onChair && !o.asleep)) { u.onChair = true; u.x = CHAIR_X; u.stun = 0; return; }
+  }
+  if (u.side === 'p' && u.look.kind === 'person' && (u.look.bun || u.look.chef) && !u.look.fly) {
+    if (!u.mixDone && u.x >= MIX_X - 2) {
+      u.mixDone = true;
+      if (!mixSavti && Math.random() < 0.5) { u.atMixer = true; u.mixT = MIX_STAY; u.x = MIX_X; }
+    }
+    if (u.atMixer) {
+      u.mixT -= dt;
+      if (u.mixT <= 0 && !G.units.some(o => o.onChair && !o.asleep)) u.atMixer = false;
+    }
+  }
   if (u.stun > 0) { u.stun -= dt; return; }
   let sf = 1;
   if (u.slowT > 0) { u.slowT -= dt; sf = u.slowF; }
@@ -462,7 +482,7 @@ function stepUnit(u, dt) {
   let enemy = null, ed = Infinity, allyGap = Infinity;
   for (const o of G.units) {
     if (o === u || o.asleep) continue;
-    if (o.climbT > 0 && o.side === u.side) continue;
+    if ((o.climbT > 0 || o.onChair || o.atMixer) && o.side === u.side) continue;
     const rel = (o.x - u.x) * d;
     if (o.side === u.side) { if (rel > 0 && rel < allyGap) allyGap = rel; }
     else if (rel > -12 && rel < ed) { ed = rel; enemy = o; }
@@ -474,7 +494,7 @@ function stepUnit(u, dt) {
   if (target) {
     if (u.cd <= 0) { u.cd = def.cd * rand(0.9, 1.1); attack(u, target); }
   } else {
-    let mv = def.speed * sf * dt;
+    let mv = u.atMixer ? 0 : def.speed * sf * dt;
     mv = Math.min(mv, Math.max(0, allyGap - 30));
     if (enemy) mv = Math.min(mv, Math.max(0, ed - 24));
     mv = Math.min(mv, Math.max(0, baseDist));
@@ -634,6 +654,25 @@ function buildBg() {
   b.fillStyle = 'rgba(140,190,240,.35)'; b.beginPath(); b.ellipse(760, GROUND + 40, 260, 26, 0, 0, TAU); b.fill();
   b.fillStyle = '#a5794f'; b.fillRect(0, GROUND - 6, W, 8);
   drawDishwasher(b);
+  drawMixer(b);
+}
+const MIX_X = 400, CHAIR_X = MIX_X + 28, MIX_STAY = 25;
+function drawMixer(b) {
+  const tx = MIX_X - 44, tw = 56, tt = GROUND - 58;
+  b.fillStyle = '#b5835a'; b.fillRect(tx - 4, tt, tw + 8, 7);
+  b.fillRect(tx, tt + 7, 5, GROUND - tt - 7); b.fillRect(tx + tw - 5, tt + 7, 5, GROUND - tt - 7);
+  const mx = tx + tw / 2;
+  b.fillStyle = '#e95d74'; b.fillRect(mx - 18, tt - 8, 36, 8);
+  b.fillRect(mx - 16, tt - 56, 9, 50);
+  b.beginPath(); b.ellipse(mx - 2, tt - 56, 20, 9, 0, 0, TAU); b.fill();
+  b.fillStyle = '#9aa3ad'; b.fillRect(mx + 5, tt - 50, 3, 14);
+  b.fillStyle = '#dfe4ea'; b.beginPath(); b.moveTo(mx - 10, tt - 36); b.lineTo(mx + 22, tt - 36); b.lineTo(mx + 16, tt - 9); b.lineTo(mx - 4, tt - 9); b.closePath(); b.fill();
+  b.fillStyle = '#e8d3a8'; b.beginPath(); b.ellipse(mx + 6, tt - 37, 15, 6, 0, 0, TAU); b.fill();
+  b.fillStyle = '#6b4423'; for (const [cx, cy] of [[mx, tt - 38], [mx + 9, tt - 36], [mx + 14, tt - 39]]) { b.beginPath(); b.arc(cx, cy, 1.6, 0, TAU); b.fill(); }
+  b.fillStyle = '#7fb3e8'; b.fillRect(CHAIR_X - 16, GROUND - 32, 32, 6);
+  b.fillRect(CHAIR_X + 12, GROUND - 74, 5, 44);
+  b.fillRect(CHAIR_X - 14, GROUND - 26, 4, 26); b.fillRect(CHAIR_X + 11, GROUND - 26, 4, 26);
+  b.fillRect(CHAIR_X + 10, GROUND - 74, 9, 6);
 }
 const DW_X = 640, CLIMB_T = 2.8;
 function drawDishwasher(b) {
@@ -741,7 +780,7 @@ function drawProp(p, hx, hy) {
 
 function drawCrawler(u) {
   const L = u.look, s = u.def.scale || 1, d = u.dir;
-  const still = u.stun > 0 || (u.asleep && !u.happy);
+  const still = u.stun > 0 || (u.asleep && !u.happy) || u.onChair;
   const sw = still ? 0 : Math.sin(u.walk * 1.6) * 6, bob = still ? 0 : Math.abs(Math.sin(u.walk * 1.6)) * 2;
   ctx.save();
   ctx.translate(u.x - (u.hurt > 0 ? d * 3 : 0), GROUND - bob - (u.lift || 0));
@@ -776,14 +815,14 @@ function drawPerson(u) {
   const fly = L.fly ? 18 + Math.sin(G.t * 4 + u.x * 0.05) * 4 : 0;
   ctx.save();
   const hop = u.happy ? Math.abs(Math.sin(u.walk)) * 10 : 0;
-  ctx.translate(u.x - (u.hurt > 0 ? d * 3 : 0), GROUND - fly - hop);
+  ctx.translate(u.x - (u.hurt > 0 ? d * 3 : 0), GROUND - fly - hop - (u.lift || 0));
   if (u.asleep && !u.happy) {
     const k = Math.min(1, (1.6 - u.sleepT) * 4);
     ctx.globalAlpha = Math.max(0, Math.min(1, u.sleepT / 0.7));
     ctx.rotate(-d * k * Math.PI / 2 * 0.95);
   }
   ctx.scale(d * s, s);
-  const still = (u.asleep && !u.happy) || u.stun > 0;
+  const still = (u.asleep && !u.happy) || u.stun > 0 || u.onChair || (u.atMixer && u.atk === 0);
   const sw = still ? 0 : Math.sin(u.walk) * 9, lunge = u.atk * 8;
   if (L.cape) {
     ctx.fillStyle = L.cape; ctx.beginPath(); ctx.moveTo(-8, -62);
@@ -1244,6 +1283,10 @@ if (AUTOTEST && /shot/.test(location.search)) {
   for (let i = 0; i < 30 * 42; i++) { if (i % 60 === 0) autoPlay(); update(1 / 30); }
   const baby = spawnKid(S.roster.find(r => r.type === 'little'), 0, 0); baby.x = 820;
   const climber = spawnKid(S.roster.filter(r => r.type === 'little')[1], 0, 0); climber.x = DW_X; climber.dwDone = true; climber.climbT = 1.4; climber.lift = 34;
+  G.units = G.units.filter(o => Math.abs(o.x - MIX_X) > 70 || o.asleep);
+  const mixer = spawnDefender(AGES[0].units[0]); mixer.x = MIX_X; mixer.atMixer = true; mixer.mixDone = true; mixer.mixT = MIX_STAY;
+  const sitter = spawnKid(S.roster.find(r => r.name === 'Ariel') || S.roster[2], 0, 0); sitter.x = CHAIR_X; sitter.onChair = true; sitter.chairDone = true; sitter.lift = 30;
+  sitter.bubble = { text: 'savti cookies!', t: 2 };
   const runner = spawnKid(S.roster[0], 0, 0); runner.x = 960; putToSleep(runner);
   const gm = spawnDefender(AGES[G.age].units[0]); gm.x = 420; putToSleep(gm);
   const pet = spawnDefender(AGES[G.age].units[2]); pet.x = 520; putToSleep(pet);
