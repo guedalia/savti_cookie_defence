@@ -969,6 +969,14 @@ function render() {
   const order = G.units.slice().sort((a, b) => (b.asleep - a.asleep) || ((a.climbT > 0) - (b.climbT > 0)) || ((a.look.fly ? 1 : 0) - (b.look.fly ? 1 : 0)));
   for (const u of G.units) if (u.onChair && !u.asleep && u.seat > 0) drawChair(ctx, seatX(u.seat));
   for (const u of order) (u.look.kind === 'person' ? drawPerson : drawAnimal)(u);
+  ctx.font = 'bold 13px Segoe UI';
+  const labelRow = new Map(), rowEnd = [-Infinity, -Infinity, -Infinity];
+  for (const u of G.units.filter(o => o.side === 'k' && !o.asleep).sort((a, b) => a.x - b.x)) {
+    const w = ctx.measureText(u.name).width + 6, left = u.x - w / 2;
+    let r = rowEnd.findIndex(e => e <= left);
+    if (r < 0) r = rowEnd.indexOf(Math.min(...rowEnd));
+    rowEnd[r] = left + w; labelRow.set(u, r);
+  }
   for (const u of G.units) {
     const s = u.def.scale || 1, top = GROUND - (u.lift || 0) - (u.look.crawl ? 58 : u.look.kind === 'person' ? 104 : 60) * s - (u.look.fly ? 20 : 0);
     if (u.happy) {
@@ -988,7 +996,7 @@ function render() {
     }
     if (u.side === 'k') {
       ctx.font = 'bold 13px Segoe UI'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#ffffff';
-      const ny = GROUND + 18 + (u.onChair && u.seat % 2 ? 16 : 0);
+      const ny = GROUND + 18 + (labelRow.get(u) || 0) * 16;
       ctx.strokeText(u.name, u.x, ny); ctx.fillStyle = '#4a3b2c'; ctx.fillText(u.name, u.x, ny);
     }
   }
