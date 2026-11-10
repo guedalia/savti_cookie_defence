@@ -306,6 +306,7 @@ function spawnDefender(def) {
   const u = makeUnit('p', def, def.look, nm(def.name), null);
   u.x = P_FRONT - 12;
   G.units.push(u);
+  return u;
 }
 
 function talk(u, text) {
@@ -389,6 +390,8 @@ function putToSleep(u) {
     beep(1320, 0.08, 'sine', 0.03); setTimeout(() => beep(1760, 0.1, 'sine', 0.03), 90);
   } else {
     G.xp += Math.round(u.def.cost * 0.4); G.stats.lost++;
+    u.happy = true; u.dir = -1; u.sleepT = 99; u.stun = 0; u.slowT = 0;
+    beep(1046, 0.08, 'sine', 0.025); setTimeout(() => beep(1318, 0.1, 'sine', 0.025), 90);
   }
 }
 function fire(x, y, side, tgt, dmg, kind, slow) {
@@ -411,7 +414,7 @@ function attack(u, target) {
 
 function stepUnit(u, dt) {
   if (u.asleep) {
-    if (u.happy) { u.x += 190 * dt; u.walk += 190 * dt * 0.18; if (u.x > W + 60) u.sleepT = 0; }
+    if (u.happy) { u.x += 190 * u.dir * dt; u.walk += 190 * dt * 0.18; if (u.x > W + 60 || u.x < -60) u.sleepT = 0; }
     else u.sleepT -= dt;
     return;
   }
@@ -778,10 +781,12 @@ function drawPerson(u) {
 function drawAnimal(u) {
   const L = u.look, d = u.dir, s = u.def.scale || 1;
   ctx.save();
-  ctx.translate(u.x - (u.hurt > 0 ? d * 3 : 0), GROUND);
-  if (u.asleep) ctx.globalAlpha = Math.max(0, Math.min(1, u.sleepT / 0.7));
+  const hop = u.happy ? Math.abs(Math.sin(u.walk)) * 8 : 0;
+  ctx.translate(u.x - (u.hurt > 0 ? d * 3 : 0), GROUND - hop);
+  if (u.asleep && !u.happy) ctx.globalAlpha = Math.max(0, Math.min(1, u.sleepT / 0.7));
   ctx.scale(d * s, s);
-  const sw = u.asleep || u.stun > 0 ? 0 : Math.sin(u.walk) * 6, lunge = u.atk * 6;
+  const nap = u.asleep && !u.happy;
+  const sw = nap || u.stun > 0 ? 0 : Math.sin(u.walk) * 6, lunge = u.atk * 6;
   if (L.kind === 'robo') {
     ctx.fillStyle = '#5d6b7a'; ctx.beginPath(); ctx.ellipse(0, -16, 32, 14, 0, 0, TAU); ctx.fill();
     ctx.fillStyle = '#8796a6'; ctx.beginPath(); ctx.ellipse(0, -24, 26, 9, 0, 0, TAU); ctx.fill();
@@ -812,7 +817,7 @@ function drawAnimal(u) {
     circle(hx + 11, -37, 6, '#d9a877'); circle(hx + 15, -39, 2.5, '#222');
     if (u.atk > 0.3) { ctx.fillStyle = '#f78fb3'; ctx.fillRect(hx + 10, -33, 5, 7); }
   }
-  if (u.asleep) { ctx.strokeStyle = '#222'; ctx.lineWidth = 1.5; line(hx + 1, -43, hx + 6, -43); }
+  if (nap) { ctx.strokeStyle = '#222'; ctx.lineWidth = 1.5; line(hx + 1, -43, hx + 6, -43); }
   else circle(hx + 4, -43, 2.2, '#222');
   ctx.fillStyle = '#e95d5d'; ctx.fillRect(hx - 10, -32, 6, 10);
   ctx.restore();
@@ -1036,7 +1041,7 @@ function showHow() {
   showOv('<h2>How to play</h2><ul class="how">' +
     '<li>The grandkids walk from the playroom on the right toward the cookie cupboard on the left. If they reach it, they eat cookies. No cookies left means you lose.</li>' +
     '<li>Send helpers (keys 1, 2, 3). Each costs 🪙 coins and is trained in the "On the way" queue (up to 5).</li>' +
-    '<li>Nobody hits anyone: ' + esc(S.gm) + ' hands out cookie dough, the pets lick and cuddle. A grandkid whose energy runs out runs back home happy and gives you 🪙 coins and ⭐ stars. Helpers who get tired go for a nap.</li>' +
+    '<li>Nobody hits anyone: ' + esc(S.gm) + ' hands out cookie dough, the pets lick and cuddle. A grandkid whose energy runs out runs back home happy and gives you 🪙 coins and ⭐ stars. Helpers who get tired go home happy too, for a cup of tea.</li>' +
     '<li>Turrets on top of the cupboard (T) fire at anything that comes close. There are two shelves.</li>' +
     '<li>Collect ⭐ stars to move to the next age (E): better helpers, a better turret and a new special.</li>' +
     '<li>Specials (S): 😴 Nap Time, 🛁 Bath Time, 🥦 Broccoli Rain. They recharge after 60 seconds.</li>' +
@@ -1070,7 +1075,7 @@ function showEnd() {
   const m = Math.floor(G.t / 60), s = String(Math.floor(G.t % 60)).padStart(2, '0');
   showOv('<h1>' + (win ? '🌙 The grandkids are all tired out!' : '😱 The cookies are gone!') + '</h1>' +
     '<p>' + (win ? 'The grandkids ran out of energy and went to bed. ' + esc(S.gm) + "'s cookies are safe (" + Math.ceil(G.cookies) + ' left).' : 'Crumbs everywhere. The grandkids are very happy and very sticky.') + '</p>' +
-    '<p>Time ' + m + ':' + s + ' · Grandkids sent home happy: ' + G.stats.asleep + ' · Helpers who needed a nap: ' + G.stats.lost + ' · Age reached: ' + esc(nm(AGES[G.age].name)) + '</p>' +
+    '<p>Time ' + m + ':' + s + ' · Grandkids sent home happy: ' + G.stats.asleep + ' · Helpers who went home for tea:' + G.stats.lost + ' · Age reached: ' + esc(nm(AGES[G.age].name)) + '</p>' +
     '<div class="row2"><button class="big" data-go="play">Play again</button><button data-go="menu">Menu</button></div>');
 }
 
@@ -1184,6 +1189,8 @@ if (AUTOTEST && /shot/.test(location.search)) {
   for (let i = 0; i < 30 * 42; i++) { if (i % 60 === 0) autoPlay(); update(1 / 30); }
   const baby = spawnKid(S.roster.find(r => r.type === 'little'), 0, 0); baby.x = 820;
   const runner = spawnKid(S.roster[0], 0, 0); runner.x = 960; putToSleep(runner);
+  const gm = spawnDefender(AGES[G.age].units[0]); gm.x = 420; putToSleep(gm);
+  const pet = spawnDefender(AGES[G.age].units[2]); pet.x = 520; putToSleep(pet);
   G.units.filter(u => u.side === 'k' && !u.asleep).slice(0, 2).forEach((u, i) => { u.bubble = { text: PHRASES[i], t: 2 }; });
   render(); uiTick();
 } else if (AUTOTEST) runAutotest();
