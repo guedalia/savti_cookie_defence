@@ -1086,7 +1086,7 @@ function placeTip() {
   const tip = $('#tip'), btn = $('#u0');
   const show = G && !G.tipDone && G.state === 'play' && !paused && ov.classList.contains('hide') && btn;
   if (!show) { tip.classList.remove('on'); btn && btn.classList.remove('pulse'); return; }
-  tip.innerHTML = '👇 Tap <b>' + esc(S.gm) + '</b> to send her out!' + (matchMedia('(pointer:coarse)').matches ? '' : '<small>or press 1</small>');
+  tip.innerHTML = '👇 Tap <b>' + esc(S.gm) + '</b> to ask her to make cookies!' + (matchMedia('(pointer:coarse)').matches ? '' : '<small>or press 1</small>');
   tip.classList.add('on'); btn.classList.add('pulse');
   const r = btn.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
   const left = Math.max(8, Math.min(innerWidth - tw - 8, r.left + r.width / 2 - tw / 2));
