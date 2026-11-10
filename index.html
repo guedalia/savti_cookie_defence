@@ -1544,7 +1544,7 @@ function boardTour() {
   const g = G, ease = x => x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
   const legs = [[0, max, 2400], [max, max, 700], [max, 0, 1800]];
   let leg = 0, t0 = performance.now(), done = false;
-  g.state = 'tour'; g.banner = { text: 'Here comes the whole kitchen!', t: 99 };
+  g.state = 'tour'; g.banner = null;
   const finish = () => {
     if (done) return; done = true;
     sc.removeEventListener('touchstart', finish); sc.removeEventListener('mousedown', finish);
