@@ -681,6 +681,34 @@ function buildBg() {
   b.fillStyle = '#a5794f'; b.fillRect(0, GROUND - 6, W, 8);
   drawDishwasher(b);
   drawMixer(b);
+  drawSmoker(b);
+}
+const SM_X = 800;
+function drawSmoker(b) {
+  const x0 = SM_X - 46, x1 = SM_X + 46, top = GROUND - 152, body = GROUND - 102;
+  b.fillStyle = '#3a3f45';
+  b.fillRect(x0 + 6, body, 5, GROUND - body); b.fillRect(x1 - 11, body, 5, GROUND - body);
+  b.fillRect(x0 + 6, GROUND - 16, x1 - x0 - 12, 4);
+  b.fillStyle = '#2b2f34'; b.beginPath(); b.arc(x0 + 10, GROUND - 4, 5, 0, TAU); b.arc(x1 - 10, GROUND - 4, 5, 0, TAU); b.fill();
+  b.fillStyle = '#9aa3ad'; b.fillRect(x0 - 10, body + 6, 10, 4); b.fillRect(x1, body + 6, 10, 4);
+  b.fillStyle = '#4a5058'; b.fillRect(x0, body - 18, x1 - x0, 24);
+  b.fillStyle = '#26292d'; b.beginPath(); b.moveTo(x0, body - 18); b.lineTo(x0, top + 14);
+  b.quadraticCurveTo(x0, top, x0 + 14, top); b.lineTo(x1 - 14, top); b.quadraticCurveTo(x1, top, x1, top + 14); b.lineTo(x1, body - 18); b.closePath(); b.fill();
+  b.fillStyle = '#c3cad3'; b.fillRect(x0 + 16, body - 26, x1 - x0 - 32, 4);
+  b.fillStyle = '#5d6772'; b.fillRect(x1 - 30, top - 14, 22, 14);
+  b.fillStyle = '#26292d'; b.fillRect(x1 - 32, top - 18, 26, 5);
+  b.fillStyle = '#f2b134'; b.beginPath(); b.arc(x0 + 12, body - 6, 3, 0, TAU); b.fill();
+  b.fillStyle = '#ff7a3c'; for (let i = 0; i < 4; i++) { b.beginPath(); b.arc(x0 + 30 + i * 12, body - 6, 2, 0, TAU); b.fill(); }
+  b.fillStyle = '#e6ebf0'; b.font = 'bold 9px Segoe UI'; b.textAlign = 'center'; b.fillText('WOODFIRE', SM_X, top + 22);
+}
+function drawSmoke() {
+  const t = performance.now() / 1000, vx = SM_X + 27, vy = GROUND - 172;
+  for (let i = 0; i < 9; i++) {
+    const ph = (t * 0.3 + i / 9) % 1;
+    const x = vx + ph * 30 + Math.sin(t * 1.4 + i * 2.1) * 9 * ph, y = vy - ph * 190, r = 7 + ph * 24;
+    ctx.fillStyle = 'rgba(150,156,164,' + (0.5 * (1 - ph)).toFixed(3) + ')';
+    ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+  }
 }
 const MIX_X = 400, CHAIR_X = MIX_X + 28, MIX_STAY = 25;
 function drawMixer(b) {
@@ -985,6 +1013,7 @@ function drawBubble(x, y, text) {
 
 function render() {
   ctx.drawImage(bg, 0, 0, W, H);
+  drawSmoke();
   drawFort();
   drawCupboard();
   if (!G) return;
