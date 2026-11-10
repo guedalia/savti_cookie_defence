@@ -709,6 +709,7 @@ function buildBg() {
   b.fillStyle = 'rgba(140,190,240,.35)'; b.beginPath(); b.ellipse(760, GROUND + 40, 260, 26, 0, 0, TAU); b.fill();
   b.fillStyle = '#a5794f'; b.fillRect(0, GROUND - 6, W, 8);
   drawDishwasher(b);
+  drawInstantPot(b, DW_X, GROUND - 134);
   drawMixer(b);
 }
 const MIX_X = 400, CHAIR_X = MIX_X + 28, MIX_STAY = 60;
@@ -735,6 +736,24 @@ function drawChair(b, x) {
   b.fillRect(x + 10, GROUND - 74, 9, 6);
 }
 const DW_X = 860, CLIMB_T = 2.8;
+function drawInstantPot(b, x, y) {
+  const w = 54, bt = y - 40;
+  b.fillStyle = '#1f2226'; b.fillRect(x - w / 2 + 2, y - 5, w - 4, 5);
+  const st = b.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
+  st.addColorStop(0, '#8e959c'); st.addColorStop(0.3, '#e8ecef'); st.addColorStop(0.55, '#b9c0c6'); st.addColorStop(1, '#6f767d');
+  b.fillStyle = st; b.fillRect(x - w / 2, bt, w, 36);
+  b.fillStyle = '#1f2226'; b.fillRect(x - w / 2 - 3, bt - 4, w + 6, 7);
+  b.beginPath(); b.ellipse(x, bt - 4, w / 2 + 1, 13, 0, Math.PI, TAU); b.fill();
+  b.fillStyle = '#3a3f45'; b.beginPath(); b.ellipse(x, bt - 9, 19, 7, 0, Math.PI, TAU); b.fill();
+  b.fillStyle = '#111316'; b.fillRect(x - 13, bt - 19, 26, 5); b.fillRect(x - 3, bt - 22, 7, 4);
+  b.fillRect(x - w / 2 - 8, bt - 2, 8, 5); b.fillRect(x + w / 2, bt - 2, 8, 5);
+  b.fillStyle = '#26292d'; b.beginPath(); b.ellipse(x, bt + 19, 15, 13, 0, 0, TAU); b.fill();
+  b.fillStyle = '#e9ecef'; b.beginPath(); b.ellipse(x, bt + 19, 12.5, 10.5, 0, 0, TAU); b.fill();
+  b.fillStyle = '#1b1d20'; b.fillRect(x - 7, bt + 13, 14, 7);
+  b.fillStyle = '#ff3b30'; b.font = 'bold 6px Segoe UI'; b.textAlign = 'center'; b.fillText('OFF', x, bt + 18.5);
+  b.fillStyle = '#26292d'; b.font = 'bold 3.5px Segoe UI'; b.fillText('Instant Pot', x, bt + 12);
+  for (const [cx, cy, c] of [[-6, 24, '#f2a35a'], [0, 24, '#e2b83c'], [6, 24, '#4fae6a'], [-3, 27.5, '#9aa3ad'], [3, 27.5, '#5d8fd6']]) { b.strokeStyle = c; b.lineWidth = 0.8; b.strokeRect(x + cx - 2, bt + cy - 1, 4, 2.2); }
+}
 function drawDishwasher(b) {
   const x0 = DW_X - 48, x1 = DW_X + 48, top = GROUND - 128;
   b.fillStyle = '#b9c0c9'; b.fillRect(x0 - 4, top - 6, x1 - x0 + 8, 8);
@@ -793,31 +812,34 @@ function drawCupboard() {
 }
 
 function drawAirFryer(x, y) {
-  const x0 = x - 21, x1 = x + 21, top = y - 26, now = performance.now() / 1000;
-  ctx.save(); ctx.translate(x1, top); ctx.rotate(1.15);
-  ctx.fillStyle = '#26292d'; rr(-42, -12, 42, 12, 6); ctx.fill(); ctx.fillRect(-42, -4, 42, 4);
-  ctx.fillStyle = '#4a5058'; ctx.fillRect(-40, -1, 38, 2);
+  const x0 = x - 22, x1 = x + 22, base = y - 14, now = performance.now() / 1000;
+  ctx.fillStyle = '#9aa3ad'; ctx.fillRect(x0 + 6, base - 34, x1 - x0 - 12, 3);
+  ctx.save(); ctx.translate(x, base - 2); ctx.rotate(-0.12);
+  ctx.fillStyle = '#8e969e'; rr(-21, -34, 42, 30, 6); ctx.fill();
+  ctx.fillStyle = '#26292d'; rr(-14, -30, 28, 10, 3); ctx.fill();
+  ctx.fillStyle = '#e6ebf0'; ctx.font = '900 7px Segoe UI'; ctx.textAlign = 'center'; ctx.fillText('NINJA', 0, -22.5);
+  ctx.fillStyle = '#b9c0c6'; rr(-16, -18, 32, 5, 2); ctx.fill();
+  ctx.fillStyle = '#5d6772'; ctx.fillRect(-18, -8, 36, 4);
   ctx.restore();
-  ctx.fillStyle = '#ff9a4a'; ctx.fillRect(x0 + 3, top - 2, x1 - x0 - 6, 3);
-  ctx.strokeStyle = '#9aa3ad'; ctx.lineWidth = 1;
-  for (let gx = x0 + 6; gx < x1 - 4; gx += 5) { ctx.beginPath(); ctx.moveTo(gx, top - 2); ctx.lineTo(gx, top + 1); ctx.stroke(); }
-  ctx.fillStyle = '#26292d'; ctx.fillRect(x0, top, x1 - x0, 8);
-  ctx.fillStyle = '#4a5058'; rr(x0, top + 7, x1 - x0, y - top - 7, 3); ctx.fill();
-  ctx.fillStyle = '#e6ebf0'; ctx.font = 'italic 900 8px Arial Black, Segoe UI'; ctx.textAlign = 'center'; ctx.fillText('NINJA', x - 4, top + 16);
-  for (let i = 0; i < 3; i++) circle(x0 + 12 + i * 9, y - 5, 1.4, '#ff7a3c');
-  circle(x1 - 6, top + 13, 2, '#f2b134');
+  ctx.fillStyle = '#3a3f45'; ctx.fillRect(x - 5, base - 6, 10, 4);
+  ctx.fillStyle = '#1b1d20'; ctx.fillRect(x0, base - 2, x1 - x0, 6);
+  ctx.fillStyle = '#ff9a4a'; ctx.fillRect(x0 + 5, base - 3, x1 - x0 - 10, 2);
+  ctx.fillStyle = '#26292d'; ctx.fillRect(x0 - 1, base + 4, x1 - x0 + 2, y - base - 4);
+  ctx.fillStyle = '#5d6772'; ctx.fillRect(x0 - 1, base + 4, 4, y - base - 4); ctx.fillRect(x1 - 3, base + 4, 4, y - base - 4);
+  for (let i = 0; i < 4; i++) circle(x0 + 10 + i * 6, y - 5, 0.9, '#c3cad3');
+  ctx.fillStyle = '#cfd5dc'; rr(x1 - 11, y - 7, 6, 2.5, 1); ctx.fill();
   ctx.lineWidth = 2;
   for (let i = 0; i < 3; i++) {
-    const ph = (now * 0.6 + i / 3) % 1, bx = x0 + 9 + i * 10;
+    const ph = (now * 0.6 + i / 3) % 1, bx = x0 + 11 + i * 11;
     ctx.strokeStyle = 'rgba(255,140,60,' + (0.55 * (1 - ph)).toFixed(3) + ')';
     ctx.beginPath();
-    for (let k = 0; k <= 10; k++) { const yy = top - 4 - ph * 20 - k * 2.4, xx = bx + Math.sin(k * 0.9 + now * 6 + i) * 2.5; k ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy); }
+    for (let k = 0; k <= 10; k++) { const yy = base - 6 - ph * 20 - k * 2.4, xx = bx + Math.sin(k * 0.9 + now * 6 + i) * 2.5; k ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy); }
     ctx.stroke();
   }
   for (let i = 0; i < 4; i++) {
     const ph = (now * 0.4 + i / 4) % 1;
     ctx.fillStyle = 'rgba(255,255,255,' + (0.75 * (1 - ph)).toFixed(3) + ')';
-    ctx.beginPath(); ctx.arc(x - 6 + i * 5 + Math.sin(now * 2 + i * 1.7) * 5 * ph, top - 8 - ph * 50, 3 + ph * 9, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(x - 8 + i * 5 + Math.sin(now * 2 + i * 1.7) * 5 * ph, base - 10 - ph * 50, 3 + ph * 9, 0, TAU); ctx.fill();
   }
 }
 function drawMiniSmoker(x, y, def) {
