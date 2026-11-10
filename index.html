@@ -283,7 +283,8 @@ function speak(u, text) {
   const who = voiceOf(u), url = VOICE_CLIPS[who] && VOICE_CLIPS[who][text];
   if (!url) return;
   const adult = u.side === 'p', now = performance.now();
-  if (!adult && (now - kidSpeakT < 3500 || (voiceSrc && voiceAdult))) return;
+  if (voiceSrc && voiceAdult) return;
+  if (!adult && now - kidSpeakT < 3500) return;
   if (!adult) kidSpeakT = now;
   try {
     AC = AC || new (window.AudioContext || window.webkitAudioContext)();
