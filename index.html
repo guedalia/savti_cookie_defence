@@ -745,12 +745,11 @@ function drawInstantPot(b, x, y) {
   b.fillStyle = '#1f2226'; b.fillRect(x - w / 2 - 3, bt - 4, w + 6, 7);
   b.beginPath(); b.ellipse(x, bt - 4, w / 2 + 1, 13, 0, Math.PI, TAU); b.fill();
   b.fillStyle = '#3a3f45'; b.beginPath(); b.ellipse(x, bt - 9, 19, 7, 0, Math.PI, TAU); b.fill();
-  b.fillStyle = '#111316'; b.fillRect(x - 13, bt - 19, 26, 5); b.fillRect(x - 3, bt - 22, 7, 4);
+  b.fillStyle = '#111316'; b.fillRect(x - 13, bt - 19, 26, 5); b.fillRect(x - 3, bt - 22, 7, 4); b.fillRect(x + 14, bt - 15, 5, 5);
   b.fillRect(x - w / 2 - 8, bt - 2, 8, 5); b.fillRect(x + w / 2, bt - 2, 8, 5);
   b.fillStyle = '#26292d'; b.beginPath(); b.ellipse(x, bt + 19, 15, 13, 0, 0, TAU); b.fill();
   b.fillStyle = '#e9ecef'; b.beginPath(); b.ellipse(x, bt + 19, 12.5, 10.5, 0, 0, TAU); b.fill();
   b.fillStyle = '#1b1d20'; b.fillRect(x - 7, bt + 13, 14, 7);
-  b.fillStyle = '#ff3b30'; b.font = 'bold 6px Segoe UI'; b.textAlign = 'center'; b.fillText('OFF', x, bt + 18.5);
   b.fillStyle = '#26292d'; b.font = 'bold 3.5px Segoe UI'; b.fillText('Instant Pot', x, bt + 12);
   for (const [cx, cy, c] of [[-6, 24, '#f2a35a'], [0, 24, '#e2b83c'], [6, 24, '#4fae6a'], [-3, 27.5, '#9aa3ad'], [3, 27.5, '#5d8fd6']]) { b.strokeStyle = c; b.lineWidth = 0.8; b.strokeRect(x + cx - 2, bt + cy - 1, 4, 2.2); }
 }
@@ -855,6 +854,17 @@ function drawMiniSmoker(x, y, def) {
     const ph = (now * 0.35 + i / 5) % 1;
     ctx.fillStyle = 'rgba(150,156,164,' + (0.5 * (1 - ph)).toFixed(3) + ')';
     ctx.beginPath(); ctx.arc(x1 - 9 + ph * 14 + Math.sin(now * 1.5 + i * 2) * 4 * ph, top - 10 - ph * 70, 4 + ph * 12, 0, TAU); ctx.fill();
+  }
+}
+function drawPotSteam() {
+  const x = DW_X, bt = GROUND - 174, now = performance.now() / 1000;
+  const left = 720 - Math.floor(now) % 720, mm = Math.floor(left / 60), ss = left % 60;
+  ctx.fillStyle = '#ff3b30'; ctx.font = 'bold 6px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText(mm + ':' + (ss < 10 ? '0' : '') + ss, x, bt + 18.5);
+  for (let i = 0; i < 8; i++) {
+    const ph = (now * 0.45 + i / 8) % 1;
+    ctx.fillStyle = 'rgba(205,213,222,' + (0.85 * (1 - ph)).toFixed(3) + ')';
+    ctx.beginPath(); ctx.arc(x + 16 + ph * 12 + Math.sin(now * 2.2 + i * 1.9) * 6 * ph, bt - 17 - ph * 110, 3 + ph * 15, 0, TAU); ctx.fill();
   }
 }
 function drawFort() {
@@ -1107,6 +1117,7 @@ function drawBubble(x, y, text) {
 
 function render() {
   ctx.drawImage(bg, 0, 0, W, H);
+  drawPotSteam();
   drawFort();
   drawCupboard();
   if (!G) return;
