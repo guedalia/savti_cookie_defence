@@ -128,10 +128,10 @@ const AGES = [
     units: [
       { name: 'Savti', emoji: '👵', role: 'Gives cookie dough', cost: 15, hp: 65, dmg: 9, range: 32, speed: 45, cd: 0.8, train: 1.2,
         look: { kind: 'person', hair: '#dcdcdc', bun: true, apron: true, shirt: '#c86b8a', prop: 'dough' } },
-      { name: 'Saba', emoji: '👴', role: 'Throws challah', cost: 25, hp: 45, dmg: 7, range: 170, speed: 40, cd: 1.2, train: 1.6, proj: 'challah',
-        look: { kind: 'person', hair: '#cfcfcf', bald: true, glasses: true, shirt: '#5b7fb5', prop: 'challah' } },
-      { name: 'Sonia', emoji: '🧹', role: 'Robot cleaner, tough', cost: 60, hp: 200, dmg: 11, range: 30, speed: 60, cd: 0.9, train: 2.4,
-        look: { kind: 'robo', model: 'sonia' } }
+      { name: 'Saba', emoji: '👴', role: 'Throws cheese triangles', cost: 25, hp: 45, dmg: 7, range: 170, speed: 40, cd: 1.2, train: 1.6, proj: 'cheese',
+        look: { kind: 'person', hair: '#cfcfcf', bald: true, glasses: true, shirt: '#5b7fb5', prop: 'cheese' } },
+      { name: 'Sonya', emoji: '🧹', role: 'Robot cleaner, tough', cost: 60, hp: 200, dmg: 11, range: 30, speed: 60, cd: 0.9, train: 2.4,
+        look: { kind: 'robo', model: 'sonya' } }
     ],
     turret: { name: 'Air Fryer', emoji: '🍟', cost: 80, dmg: 6, range: 300, cd: 1.3, proj: 'fries', app: 'fryer' },
     special: { name: 'Nap Time!', emoji: '😴', kind: 'nap' } },
@@ -139,8 +139,8 @@ const AGES = [
     units: [
       { name: 'Chef Savti', emoji: '👩‍🍳', role: 'Tray of warm cookies', cost: 30, hp: 130, dmg: 16, range: 34, speed: 48, cd: 0.8, train: 1.4,
         look: { kind: 'person', hair: '#dcdcdc', chef: true, apron: true, shirt: '#f4f4f4', prop: 'tray' } },
-      { name: 'Squirt Saba', emoji: '💦', role: 'Water pistol', cost: 45, hp: 85, dmg: 12, range: 190, speed: 42, cd: 1.0, train: 1.8, proj: 'water',
-        look: { kind: 'person', hair: '#cfcfcf', bald: true, glasses: true, shirt: '#3f9e8f', prop: 'pistol' } },
+      { name: 'Challah Saba', emoji: '🍞', role: 'Throws challah', cost: 45, hp: 85, dmg: 12, range: 190, speed: 42, cd: 1.0, train: 1.8, proj: 'challah',
+        look: { kind: 'person', hair: '#cfcfcf', bald: true, glasses: true, shirt: '#3f9e8f', prop: 'challah' } },
       { name: 'Noel', emoji: '🤖', role: 'Laser-sensor cleaner', cost: 110, hp: 380, dmg: 18, range: 30, speed: 58, cd: 0.9, train: 2.8,
         look: { kind: 'robo', model: 'noel' } }
     ],
@@ -334,7 +334,7 @@ function makeUnit(side, def, look, name, img) {
 }
 function makeKidDef(type, lvl) {
   const b = KID_TYPES[type] || KID_TYPES.kid;
-  const pw = (G && G.diff.power) || 1;
+  const pw = ((G && G.diff.power) || 1) * (type === 'big' && lvl === 0 ? 0.55 : 1);
   return { ...b, hp: b.hp * (1 + 0.7 * lvl) * pw, dmg: b.dmg * (1 + 0.5 * lvl) * pw, speed: b.speed * (1 + 0.08 * lvl),
     gold: Math.round(b.gold * (1 + 0.5 * lvl)), xp: Math.round(b.xp * (1 + 0.6 * lvl)) };
 }
@@ -904,6 +904,8 @@ function drawProp(p, hx, hy) {
   } else if (p === 'pin') {
     ctx.fillStyle = '#c79a63'; rr(hx - 5, hy - 24, 10, 30, 4); ctx.fill();
     ctx.fillStyle = '#8a6440'; ctx.fillRect(hx - 2, hy - 30, 4, 6); ctx.fillRect(hx - 2, hy + 6, 4, 6);
+  } else if (p === 'cheese') {
+    cheese(hx + 3, hy - 7, 1.3, -0.3);
   } else if (p === 'pistol') {
     ctx.fillStyle = '#3d8fd9'; rr(hx - 2, hy - 8, 22, 9, 3); ctx.fill();
     circle(hx + 4, hy - 12, 6, '#f39c34');
@@ -1044,7 +1046,7 @@ function drawAnimal(u) {
       circle(0, -17, 4.5, '#c3cad3'); circle(0, -17, 2.5, Math.floor(G.t * 3) % 2 ? '#5fe07a' : '#2f8a45');
     }
     ctx.fillStyle = '#5d6772'; ctx.font = 'bold 7px Segoe UI'; ctx.textAlign = 'center';
-    ctx.save(); ctx.scale(d, 1); ctx.fillText(noel ? 'NOEL' : 'SONIA', noel ? -2 : 0, -7); ctx.restore();
+    ctx.save(); ctx.scale(d, 1); ctx.fillText(noel ? 'NOEL' : 'SONYA', noel ? -2 : 0, -7); ctx.restore();
     ctx.restore();
     return;
   }
@@ -1073,6 +1075,15 @@ function drawAnimal(u) {
   ctx.restore();
 }
 
+function cheese(x, y, s, a) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.scale(s, s);
+  const g = ctx.createLinearGradient(-7, -6, 7, 6); g.addColorStop(0, '#f4f6f8'); g.addColorStop(0.5, '#aeb5bd'); g.addColorStop(1, '#e2e6ea');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-8, 5); ctx.lineTo(8, 5); ctx.lineTo(0, -8); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#8a929b'; ctx.lineWidth = 0.8; ctx.stroke();
+  ctx.fillStyle = '#d63a2f'; ctx.fillRect(-5, 2, 10, 1.6);
+  ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.beginPath(); ctx.moveTo(-3, 1); ctx.lineTo(0, -5); ctx.lineTo(-1, 1); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
 function challah(x, y, s, a) {
   ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.scale(s, s);
   ctx.fillStyle = '#b8732c'; ctx.beginPath(); ctx.ellipse(0, 1, 13, 6, 0, 0, TAU); ctx.fill();
@@ -1087,6 +1098,8 @@ function drawProj(p) {
   ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.spin);
   if (p.kind === 'challah') {
     challah(0, 0, 1, 0);
+  } else if (p.kind === 'cheese') {
+    cheese(0, 0, 1.1, 0);
   } else if (p.kind === 'water') {
     ctx.rotate(-p.spin); circle(0, 0, 5, '#5cb6f2'); circle(-8 * Math.sign(p.side === 'p' ? 1 : -1), 0, 3, 'rgba(92,182,242,.6)');
   } else if (p.kind === 'bubble') {
