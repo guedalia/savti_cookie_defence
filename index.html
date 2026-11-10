@@ -452,9 +452,6 @@ function stepUnit(u, dt) {
     u.dwDone = true;
     if (Math.random() < 0.5) {
       u.climbT = CLIMB_T; u.x = DW_X;
-      const saba = G.units.find(o => o.side === 'p' && !o.asleep && o.look.bald);
-      if (saba) { saba.bubble = { text: 'dishwasher!', t: 2.2 }; if (Math.random() < 0.6) speak('dishwasher!', 0.6); }
-      else G.texts.push({ x: DW_X, y: GROUND - 150, text: 'dishwasher!', c: '#4a7fc1', t: 1.4 });
       return;
     }
   }
