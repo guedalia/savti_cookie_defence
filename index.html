@@ -463,7 +463,10 @@ function stepUnit(u, dt) {
   }
   if (u.side === 'k' && mixSavti && !u.chairDone && u.x >= MIX_X && u.x <= MIX_X + 70) {
     u.chairDone = true;
-    if (!G.units.some(o => o.onChair && !o.asleep)) { u.onChair = true; u.x = CHAIR_X; u.stun = 0; return; }
+    const taken = G.units.filter(o => o.onChair && !o.asleep).map(o => o.seat);
+    let seat = 0;
+    while (taken.includes(seat)) seat++;
+    if (seat < MAX_SEATS) { u.onChair = true; u.seat = seat; u.x = seatX(seat); u.stun = 0; return; }
   }
   if (u.side === 'p' && u.look.kind === 'person' && (u.look.bun || u.look.chef) && !u.look.fly) {
     if (!u.mixDone && u.x >= MIX_X - 2) {
@@ -491,6 +494,7 @@ function stepUnit(u, dt) {
   let target = null;
   if (enemy && ed <= def.range) target = enemy;
   else if (baseDist <= Math.max(def.range, 24)) target = 'base';
+  if (!target && u.atMixer) target = G.units.find(o => o.onChair && !o.asleep) || null;
   if (target) {
     if (u.cd <= 0) { u.cd = def.cd * rand(0.9, 1.1); attack(u, target); }
   } else {
@@ -669,10 +673,15 @@ function drawMixer(b) {
   b.fillStyle = '#dfe4ea'; b.beginPath(); b.moveTo(mx - 10, tt - 36); b.lineTo(mx + 22, tt - 36); b.lineTo(mx + 16, tt - 9); b.lineTo(mx - 4, tt - 9); b.closePath(); b.fill();
   b.fillStyle = '#e8d3a8'; b.beginPath(); b.ellipse(mx + 6, tt - 37, 15, 6, 0, 0, TAU); b.fill();
   b.fillStyle = '#6b4423'; for (const [cx, cy] of [[mx, tt - 38], [mx + 9, tt - 36], [mx + 14, tt - 39]]) { b.beginPath(); b.arc(cx, cy, 1.6, 0, TAU); b.fill(); }
-  b.fillStyle = '#7fb3e8'; b.fillRect(CHAIR_X - 16, GROUND - 32, 32, 6);
-  b.fillRect(CHAIR_X + 12, GROUND - 74, 5, 44);
-  b.fillRect(CHAIR_X - 14, GROUND - 26, 4, 26); b.fillRect(CHAIR_X + 11, GROUND - 26, 4, 26);
-  b.fillRect(CHAIR_X + 10, GROUND - 74, 9, 6);
+  drawChair(b, CHAIR_X);
+}
+const CHAIR_GAP = 30, MAX_SEATS = 5;
+function seatX(i) { return CHAIR_X + i * CHAIR_GAP; }
+function drawChair(b, x) {
+  b.fillStyle = '#7fb3e8'; b.fillRect(x - 16, GROUND - 32, 32, 6);
+  b.fillRect(x + 12, GROUND - 74, 5, 44);
+  b.fillRect(x - 14, GROUND - 26, 4, 26); b.fillRect(x + 11, GROUND - 26, 4, 26);
+  b.fillRect(x + 10, GROUND - 74, 9, 6);
 }
 const DW_X = 640, CLIMB_T = 2.8;
 function drawDishwasher(b) {
@@ -958,6 +967,7 @@ function render() {
   drawCupboard();
   if (!G) return;
   const order = G.units.slice().sort((a, b) => (b.asleep - a.asleep) || ((a.climbT > 0) - (b.climbT > 0)) || ((a.look.fly ? 1 : 0) - (b.look.fly ? 1 : 0)));
+  for (const u of G.units) if (u.onChair && !u.asleep && u.seat > 0) drawChair(ctx, seatX(u.seat));
   for (const u of order) (u.look.kind === 'person' ? drawPerson : drawAnimal)(u);
   for (const u of G.units) {
     const s = u.def.scale || 1, top = GROUND - (u.lift || 0) - (u.look.crawl ? 58 : u.look.kind === 'person' ? 104 : 60) * s - (u.look.fly ? 20 : 0);
@@ -978,7 +988,8 @@ function render() {
     }
     if (u.side === 'k') {
       ctx.font = 'bold 13px Segoe UI'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#ffffff';
-      ctx.strokeText(u.name, u.x, GROUND + 18); ctx.fillStyle = '#4a3b2c'; ctx.fillText(u.name, u.x, GROUND + 18);
+      const ny = GROUND + 18 + (u.onChair && u.seat % 2 ? 16 : 0);
+      ctx.strokeText(u.name, u.x, ny); ctx.fillStyle = '#4a3b2c'; ctx.fillText(u.name, u.x, ny);
     }
   }
   for (const p of G.projs) drawProj(p);
@@ -1285,7 +1296,11 @@ if (AUTOTEST && /shot/.test(location.search)) {
   const climber = spawnKid(S.roster.filter(r => r.type === 'little')[1], 0, 0); climber.x = DW_X; climber.dwDone = true; climber.climbT = 1.4; climber.lift = 34;
   G.units = G.units.filter(o => Math.abs(o.x - MIX_X) > 70 || o.asleep);
   const mixer = spawnDefender(AGES[0].units[0]); mixer.x = MIX_X; mixer.atMixer = true; mixer.mixDone = true; mixer.mixT = MIX_STAY;
-  const sitter = spawnKid(S.roster.find(r => r.name === 'Ariel') || S.roster[2], 0, 0); sitter.x = CHAIR_X; sitter.onChair = true; sitter.chairDone = true; sitter.lift = 30;
+  const sitter = spawnKid(S.roster.find(r => r.name === 'Ariel') || S.roster[2], 0, 0); sitter.x = CHAIR_X; sitter.onChair = true; sitter.seat = 0; sitter.chairDone = true; sitter.lift = 30;
+  ['Amitai', 'Yael', 'Benaya'].forEach((n, i) => {
+    const r = S.roster.find(q => q.name === n); if (!r) return;
+    const k = spawnKid(r, 0, 0); k.seat = i + 1; k.x = seatX(i + 1); k.onChair = true; k.chairDone = true; k.lift = 30;
+  });
   sitter.bubble = { text: 'savti cookies!', t: 2 };
   const runner = spawnKid(S.roster[0], 0, 0); runner.x = 960; putToSleep(runner);
   const gm = spawnDefender(AGES[G.age].units[0]); gm.x = 420; putToSleep(gm);
