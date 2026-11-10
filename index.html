@@ -316,9 +316,16 @@ function spawnDefender(def) {
   return u;
 }
 
+const BUBBLE_GAP = 130;
+function bubbleNear(u) { return G.units.some(o => o !== u && o.bubble && !o.asleep && Math.abs(o.x - u.x) < BUBBLE_GAP); }
 function talk(u, text) {
+  if (bubbleNear(u)) return;
   u.bubble = { text, t: 2.4 };
   if (Math.random() < 0.6) speak(text);
+}
+function shout(u, text) {
+  for (const o of G.units) if (o !== u && o.bubble && Math.abs(o.x - u.x) < BUBBLE_GAP) o.bubble = null;
+  u.bubble = { text, t: 2.2 };
 }
 
 function buyUnit(i) {
@@ -384,7 +391,7 @@ function hit(tgt, dmg, src) {
       if (src && src.side === 'p' && !src.asleep && src.look.kind === 'person') {
         const line = src.look.bald ? pick([null, 'dishwasher!', 'HAGDPAYT!']) : (Math.random() < 0.35 ? 'HAGDPAYT!' : null);
         if (line) {
-          src.bubble = { text: line, t: 2.2 };
+          shout(src, line);
           if (line === 'dishwasher!' && Math.random() < 0.6) speak(line, 0.6);
         }
       }
@@ -1309,11 +1316,11 @@ if (AUTOTEST && /shot/.test(location.search)) {
     const r = S.roster.find(q => q.name === n); if (!r) return;
     const k = spawnKid(r, 0, 0); k.seat = i + 1; k.x = seatX(i + 1); k.onChair = true; k.chairDone = true; k.lift = 30;
   });
-  sitter.bubble = { text: 'savti cookies!', t: 2 };
   const runner = spawnKid(S.roster[0], 0, 0); runner.x = 960; putToSleep(runner);
   const gm = spawnDefender(AGES[G.age].units[0]); gm.x = 420; putToSleep(gm);
   const pet = spawnDefender(AGES[G.age].units[2]); pet.x = 520; putToSleep(pet);
-  G.units.filter(u => u.side === 'k' && !u.asleep).slice(0, 2).forEach((u, i) => { u.bubble = { text: PHRASES[i], t: 2 }; });
+  G.units.forEach(u => { u.bubble = null; });
+  G.units.filter(u => u.side === 'k' && !u.asleep).sort((a, b) => a.x - b.x).forEach((u, i) => talk(u, PHRASES[i % PHRASES.length]));
   render(); uiTick();
 } else if (AUTOTEST) runAutotest();
 else { showMenu(); requestAnimationFrame(frame); }
