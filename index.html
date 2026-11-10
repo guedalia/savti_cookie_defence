@@ -69,7 +69,9 @@ ul.how{line-height:1.6;padding-left:20px}
 #bar em.c{display:none;font-style:normal;font-size:11px;color:var(--muted)}
 #turn{display:none;text-align:center;font-size:14px;color:var(--muted);margin:6px 0}
 @media (pointer:coarse){.hint{display:none} #bar kbd{display:none}}
-@media (orientation:portrait) and (max-width:700px){#turn{display:block}}
+@media (orientation:portrait) and (max-width:700px){#turn{display:block}
+ #scroller{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border-radius:14px;box-shadow:0 2px 12px rgba(90,60,30,.12)}
+ #scroller canvas{width:auto;max-width:none;height:min(52vh,440px);height:min(52dvh,440px);border-radius:0;box-shadow:none}}
 @media (orientation:landscape) and (max-height:520px){
  #wrap{padding:4px 6px 0;max-width:none}
  canvas{height:calc(100vh - 76px);height:calc(100dvh - 76px);width:auto;max-width:100%;margin:0 auto;border-radius:10px}
@@ -94,8 +96,8 @@ ul.how{line-height:1.6;padding-left:20px}
 </head>
 <body>
 <div id="wrap">
- <div id="turn">↻ Turn your phone sideways for a bigger game</div>
- <canvas id="cv"></canvas>
+ <div id="turn">👆 Swipe the picture left and right · or turn your phone sideways</div>
+ <div id="scroller"><canvas id="cv"></canvas></div>
  <div id="stats"></div>
  <div id="bar"></div>
  <p class="hint">Keys: 1 2 3 send helpers · T turret · S special · E next age · P pause · F speed · M music. On a phone, turn it sideways.</p>
@@ -310,6 +312,7 @@ function speak(u, text) {
 let G = null, paused = false;
 
 function newGame(dk) {
+  lastHag = -1e9;
   const d = DIFF[dk];
   G = {
     diff: d, diffKey: dk, t: 0, gold: d.startGold, xp: 0, age: 0,
@@ -423,10 +426,10 @@ function hit(tgt, dmg, src) {
     if (tgt.hp <= 0) {
       putToSleep(tgt);
       if (src && src.side === 'p' && !src.asleep && src.look.kind === 'person') {
-        const r = Math.random(), hagOk = performance.now() - lastHag > 10000;
-        let line = src.look.bald ? (r < 0.5 ? 'dishwasher!' : r < 0.75 ? 'HAGDPAYT!' : null) : (r < 0.3 ? 'HAGDPAYT!' : null);
-        if (line === 'HAGDPAYT!' && !hagOk) line = src.look.bald ? 'dishwasher!' : null;
-        if (line === 'HAGDPAYT!') lastHag = performance.now();
+        const r = Math.random(), hagOk = G.t - lastHag > 6;
+        let line = src.look.bald ? (r < 0.55 ? 'HAGDPAYT!' : r < 0.75 ? 'dishwasher!' : null) : (r < 0.15 ? 'HAGDPAYT!' : null);
+        if (line === 'HAGDPAYT!' && !hagOk) line = null;
+        if (line === 'HAGDPAYT!') lastHag = G.t;
         if (line) {
           shout(src, line);
           speak(src, line);
@@ -495,7 +498,7 @@ function stepUnit(u, dt) {
   }
   if (u.look.crawl && u.side === 'k' && !u.dwDone && u.x <= DW_X + 4) {
     u.dwDone = true;
-    if (Math.random() < 0.25) {
+    if (Math.random() < 0.6) {
       u.climbT = CLIMB_T; u.x = DW_X;
       return;
     }
@@ -731,7 +734,7 @@ function drawChair(b, x) {
   b.fillRect(x - 14, GROUND - 26, 4, 26); b.fillRect(x + 11, GROUND - 26, 4, 26);
   b.fillRect(x + 10, GROUND - 74, 9, 6);
 }
-const DW_X = 960, CLIMB_T = 2.8;
+const DW_X = 860, CLIMB_T = 2.8;
 function drawDishwasher(b) {
   const x0 = DW_X - 48, x1 = DW_X + 48, top = GROUND - 128;
   b.fillStyle = '#b9c0c9'; b.fillRect(x0 - 4, top - 6, x1 - x0 + 8, 8);
