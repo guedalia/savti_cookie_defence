@@ -98,9 +98,9 @@ const AI_STICKER = 'data:image/webp;base64,UklGRlx9AABXRUJQVlA4WAoAAAAaAAAA/wEA/
 const AUTOTEST = /autotest/.test(location.search);
 
 const DIFF = {
-  easy:   { label: 'Easy',   rate: 0.7,  levelEvery: 240, gold: 3.4, startGold: 220, fort: 800 },
-  normal: { label: 'Normal', rate: 1.0,  levelEvery: 170, gold: 2.8, startGold: 170, fort: 1000 },
-  hard:   { label: 'Hard',   rate: 1.35, levelEvery: 120, gold: 2.3, startGold: 140, fort: 1300 }
+  easy:   { label: 'Easy',   rate: 0.7,  levelEvery: 240, gold: 3.4, startGold: 220, fort: 800,  power: 1.25, maxHelpers: 10 },
+  normal: { label: 'Normal', rate: 1.0,  levelEvery: 170, gold: 2.8, startGold: 170, fort: 850,  power: 1.6,  maxHelpers: 10 },
+  hard:   { label: 'Hard',   rate: 1.35, levelEvery: 120, gold: 2.3, startGold: 140, fort: 1100, power: 2.0,  maxHelpers: 10 }
 };
 
 const KID_TYPES = {
@@ -299,7 +299,8 @@ function makeUnit(side, def, look, name, img) {
 }
 function makeKidDef(type, lvl) {
   const b = KID_TYPES[type] || KID_TYPES.kid;
-  return { ...b, hp: b.hp * (1 + 0.7 * lvl), dmg: b.dmg * (1 + 0.5 * lvl), speed: b.speed * (1 + 0.08 * lvl),
+  const pw = (G && G.diff.power) || 1;
+  return { ...b, hp: b.hp * (1 + 0.7 * lvl) * pw, dmg: b.dmg * (1 + 0.5 * lvl) * pw, speed: b.speed * (1 + 0.08 * lvl),
     gold: Math.round(b.gold * (1 + 0.5 * lvl)), xp: Math.round(b.xp * (1 + 0.6 * lvl)) };
 }
 function spawnKid(r, lvl, off) {
@@ -458,7 +459,7 @@ function stepUnit(u, dt) {
   }
   if (u.look.crawl && u.side === 'k' && !u.dwDone && u.x <= DW_X + 4) {
     u.dwDone = true;
-    if (Math.random() < 0.5) {
+    if (Math.random() < 0.25) {
       u.climbT = CLIMB_T; u.x = DW_X;
       return;
     }
@@ -552,8 +553,12 @@ function update(dt) {
     q.t -= dt;
     if (q.t <= 0) {
       const mine = g.units.filter(u => u.side === 'p' && !u.asleep);
-      const blocked = mine.length >= MAX_HELPERS || mine.some(u => u.x < P_FRONT + 22);
-      if (!blocked) { g.queue.shift(); spawnDefender(q.def); } else q.t = 0;
+      const blocked = mine.length >= (g.diff.maxHelpers || MAX_HELPERS);
+      if (!blocked) { g.queue.shift(); spawnDefender(q.def); }
+      else {
+        q.t = 0;
+        if (!g.fullWarnT || g.t - g.fullWarnT > 20) { g.fullWarnT = g.t; g.banner = { text: 'The kitchen is full! The next helper waits until someone goes home', t: 2.5 }; }
+      }
     }
   }
   kidAI(dt);
@@ -690,7 +695,7 @@ function drawChair(b, x) {
   b.fillRect(x - 14, GROUND - 26, 4, 26); b.fillRect(x + 11, GROUND - 26, 4, 26);
   b.fillRect(x + 10, GROUND - 74, 9, 6);
 }
-const DW_X = 640, CLIMB_T = 2.8;
+const DW_X = 960, CLIMB_T = 2.8;
 function drawDishwasher(b) {
   const x0 = DW_X - 48, x1 = DW_X + 48, top = GROUND - 128;
   b.fillStyle = '#b9c0c9'; b.fillRect(x0 - 4, top - 6, x1 - x0 + 8, 8);
@@ -1303,7 +1308,71 @@ function runAutotest() {
   }
 }
 
-if (AUTOTEST && /shot/.test(location.search)) {
+const STRATS = {
+  passive: () => {},
+  savti_only: () => { if (G.queue.length < 5) buyUnit(0); },
+  saba_only: () => { if (G.queue.length < 5) buyUnit(1); },
+  pets_only: () => { if (G.queue.length < 5) buyUnit(2); },
+  mixed: () => autoPlay(),
+  turtle: () => {
+    if (canEvolve()) evolve();
+    if (G.specialCd <= 0) useSpecial();
+    if (G.turrets.indexOf(null) >= 0) buyTurret();
+    else if (G.queue.length < 2) buyUnit(1);
+  },
+  rush_evolve: () => {
+    if (canEvolve()) evolve();
+    if (G.queue.length < 5) buyUnit(G.gold > 60 ? 2 : 0);
+    if (G.specialCd <= 0) useSpecial();
+  }
+};
+function playGame(diff, strat, every) {
+  newGame(diff);
+  const m = { stallMax: 0, stall: 0, mixMax: 0, mixEvents: 0, chairMax: 0, seatMax: 0, climbs: 0, gapMax: 0, gap: 0, lastSent: 0, cookieMin: 500, kidsPeak: 0, helpersPeak: 0 };
+  const seen = new Set();
+  let steps = 0;
+  while (G.state === 'play' && steps < 30 * 1200) {
+    if (steps % every === 0) STRATS[strat]();
+    update(1 / 30);
+    steps++;
+    const dt = 1 / 30;
+    const onField = G.units.filter(u => u.side === 'p' && !u.asleep).length;
+    if (G.queue.length && G.queue[0].t <= 0 && onField < (G.diff.maxHelpers || MAX_HELPERS)) { m.stall += dt; m.stallMax = Math.max(m.stallMax, m.stall); } else m.stall = 0;
+    if (onField >= (G.diff.maxHelpers || MAX_HELPERS)) m.fullT = (m.fullT || 0) + dt;
+    let seated = 0;
+    for (const u of G.units) {
+      if (u.atMixer && !u.asleep) { u._mix = (u._mix || 0) + dt; m.mixMax = Math.max(m.mixMax, u._mix); if (!seen.has(u)) { seen.add(u); m.mixEvents++; } }
+      if (u.onChair && !u.asleep) { seated++; u._seat = (u._seat || 0) + dt; m.seatMax = Math.max(m.seatMax, u._seat); }
+      if (u.climbT > 0 && !u._climbed) { u._climbed = true; m.climbs++; }
+    }
+    m.chairMax = Math.max(m.chairMax, seated);
+    if (G.stats.asleep > m.lastSent) { m.lastSent = G.stats.asleep; m.gap = 0; } else { m.gap += dt; m.gapMax = Math.max(m.gapMax, m.gap); }
+    m.cookieMin = Math.min(m.cookieMin, G.cookies);
+    m.kidsPeak = Math.max(m.kidsPeak, G.units.filter(u => u.side === 'k' && !u.asleep).length);
+    m.helpersPeak = Math.max(m.helpersPeak, G.units.filter(u => u.side === 'p' && !u.asleep).length);
+  }
+  return { diff, strat, every, result: G.state, t: Math.round(G.t), cookies: Math.round(G.cookies), energy: Math.round(G.fort), age: G.age, sent: G.stats.asleep, tired: G.stats.lost,
+    stallMax: +m.stallMax.toFixed(1), fullT: Math.round(m.fullT || 0), mixEvents: m.mixEvents, mixMax: Math.round(m.mixMax), chairMax: m.chairMax, seatMax: Math.round(m.seatMax), climbs: m.climbs,
+    quietMax: Math.round(m.gapMax), cookieMin: Math.round(m.cookieMin), kidsPeak: m.kidsPeak, helpersPeak: m.helpersPeak };
+}
+function runPlaytest() {
+  const rows = [];
+  try {
+    const qs = new URLSearchParams(location.search);
+    const runs = +(qs.get('runs') || 3);
+    const tune = JSON.parse(qs.get('tune') || '{}');
+    for (const k of Object.keys(tune)) Object.assign(DIFF[k], tune[k]);
+    for (const diff of ['easy', 'normal', 'hard'])
+      for (const strat of Object.keys(STRATS))
+        for (const every of strat === 'passive' ? [30] : [75, 150, 300])
+          for (let r = 0; r < runs; r++) rows.push(playGame(diff, strat, every));
+    document.title = 'PLAYTEST OK';
+  } catch (e) { document.title = 'PLAYTEST FAIL ' + e.message + ' @ ' + String(e.stack || '').split('\n')[1]; }
+  const pre = document.createElement('pre'); pre.id = 'pt'; pre.textContent = JSON.stringify(rows); document.body.appendChild(pre);
+}
+
+if (/playtest/.test(location.search)) runPlaytest();
+else if (AUTOTEST && /shot/.test(location.search)) {
   newGame('normal');
   hideOv();
   for (let i = 0; i < 30 * 42; i++) { if (i % 60 === 0) autoPlay(); update(1 / 30); }
