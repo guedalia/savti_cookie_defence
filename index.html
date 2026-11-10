@@ -126,8 +126,8 @@ const AGES = [
         look: { kind: 'person', hair: '#dcdcdc', bun: true, apron: true, shirt: '#c86b8a', prop: 'dough' } },
       { name: 'Saba', emoji: '👴', role: 'Throws broccoli', cost: 25, hp: 45, dmg: 7, range: 170, speed: 40, cd: 1.2, train: 1.6, proj: 'broccoli',
         look: { kind: 'person', hair: '#cfcfcf', bald: true, glasses: true, shirt: '#5b7fb5', prop: 'broccoli' } },
-      { name: 'Dog', emoji: '🐕', role: 'Tough, licks faces', cost: 60, hp: 200, dmg: 11, range: 30, speed: 60, cd: 0.9, train: 2.4,
-        look: { kind: 'dog', fur: '#b07a45' } }
+      { name: 'Sonia', emoji: '🧹', role: 'Robot cleaner, tough', cost: 60, hp: 200, dmg: 11, range: 30, speed: 60, cd: 0.9, train: 2.4,
+        look: { kind: 'robo', model: 'sonia' } }
     ],
     turret: { name: 'Air Fryer', emoji: '🍟', cost: 80, dmg: 6, range: 300, cd: 1.3, proj: 'fries', app: 'fryer' },
     special: { name: 'Nap Time!', emoji: '😴', kind: 'nap' } },
@@ -137,8 +137,8 @@ const AGES = [
         look: { kind: 'person', hair: '#dcdcdc', chef: true, apron: true, shirt: '#f4f4f4', prop: 'tray' } },
       { name: 'Squirt Saba', emoji: '💦', role: 'Water pistol', cost: 45, hp: 85, dmg: 12, range: 190, speed: 42, cd: 1.0, train: 1.8, proj: 'water',
         look: { kind: 'person', hair: '#cfcfcf', bald: true, glasses: true, shirt: '#3f9e8f', prop: 'pistol' } },
-      { name: 'Big Cat', emoji: '🐈', role: 'Tough, cuddles kids', cost: 110, hp: 380, dmg: 18, range: 30, speed: 58, cd: 0.9, train: 2.8,
-        look: { kind: 'cat', fur: '#e39b4a' } }
+      { name: 'Noel', emoji: '🤖', role: 'Laser-sensor cleaner', cost: 110, hp: 380, dmg: 18, range: 30, speed: 58, cd: 0.9, train: 2.8,
+        look: { kind: 'robo', model: 'noel' } }
     ],
     turret: { name: 'Ninja Smoker', emoji: '🔥', cost: 160, dmg: 10, range: 320, cd: 1.0, proj: 'smoke', slow: 0.5, app: 'smoker' },
     special: { name: 'Bath Time!', emoji: '🛁', kind: 'bath' } },
@@ -148,8 +148,8 @@ const AGES = [
         look: { kind: 'person', hair: '#e6e6e6', bun: true, cape: '#d64545', shirt: '#3a5fcd', prop: 'dough', fly: true } },
       { name: 'Rocket Saba', emoji: '🚀', role: 'Jetpack broccoli', cost: 90, hp: 160, dmg: 22, range: 210, speed: 46, cd: 0.95, train: 2.0, proj: 'broccoli',
         look: { kind: 'person', hair: '#cfcfcf', bald: true, glasses: true, shirt: '#7a5bb5', prop: 'jet', fly: true } },
-      { name: 'Robo-Vacuum', emoji: '🤖', role: 'Very tough', cost: 200, hp: 700, dmg: 30, range: 32, speed: 50, cd: 0.9, train: 3.0,
-        look: { kind: 'robo' } }
+      { name: 'Noel Max', emoji: '🤖', role: 'Very tough cleaner', cost: 200, hp: 700, dmg: 30, range: 32, speed: 50, cd: 0.9, train: 3.0,
+        look: { kind: 'robo', model: 'noel', max: true } }
     ],
     turret: { name: 'Ninja Smoker Max', emoji: '🔥', cost: 300, dmg: 16, range: 340, cd: 0.9, proj: 'smoke', slow: 0.6, app: 'smoker', max: true },
     special: { name: 'Broccoli Rain', emoji: '🥦', kind: 'rain' } }
@@ -954,13 +954,25 @@ function drawAnimal(u) {
   const nap = u.asleep && !u.happy;
   const sw = nap || u.stun > 0 ? 0 : Math.sin(u.walk) * 6, lunge = u.atk * 6;
   if (L.kind === 'robo') {
-    ctx.fillStyle = '#5d6b7a'; ctx.beginPath(); ctx.ellipse(0, -16, 32, 14, 0, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#8796a6'; ctx.beginPath(); ctx.ellipse(0, -24, 26, 9, 0, 0, TAU); ctx.fill();
-    circle(-8, -26, 3, Math.floor(G.t * 3) % 2 ? '#5fe07a' : '#2f8a45');
-    circle(14 + lunge, -22, 4, '#ffffff'); circle(22 + lunge, -22, 4, '#ffffff');
-    circle(15 + lunge, -22, 2, '#222'); circle(23 + lunge, -22, 2, '#222');
-    ctx.strokeStyle = '#c9a063'; ctx.lineWidth = 2;
-    for (let i = 0; i < 6; i++) { const a = G.t * 12 + i; line(30, -6, 30 + Math.cos(a) * 9, -6 + Math.sin(a) * 4); }
+    const noel = L.model === 'noel', bump = lunge;
+    ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(0, -1, 34, 5, 0, 0, TAU); ctx.fill();
+    ctx.strokeStyle = '#9aa3ad'; ctx.lineWidth = 1.5;
+    for (let i = 0; i < 3; i++) { const a = G.t * 14 + i * 2.1; line(26 + bump, -4, 26 + bump + Math.cos(a) * 9, -4 + Math.sin(a) * 3); }
+    ctx.fillStyle = noel ? '#2b2f34' : '#e9edf1'; ctx.beginPath(); ctx.ellipse(0, -12, 32, 11, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = noel ? '#3d434a' : '#ffffff'; ctx.beginPath(); ctx.ellipse(0, -16, 29, 8, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = noel ? '#5d6772' : '#c3cad3'; ctx.fillRect(22 + bump, -16, 9, 9);
+    if (noel) {
+      ctx.fillStyle = '#4a5058'; ctx.fillRect(-9, -26, 18, 8);
+      ctx.fillStyle = L.max ? '#f2b134' : '#5d6772'; ctx.beginPath(); ctx.ellipse(0, -26, 10, 4, 0, 0, TAU); ctx.fill();
+      const on = Math.floor(G.t * 4) % 2;
+      ctx.fillStyle = on ? '#4fd6ff' : '#1e8fb8'; ctx.fillRect(2, -24, 6, 3);
+      if (on) { ctx.fillStyle = 'rgba(79,214,255,.25)'; ctx.beginPath(); ctx.moveTo(8, -23); ctx.lineTo(60, -32); ctx.lineTo(60, -14); ctx.closePath(); ctx.fill(); }
+      circle(-14, -17, 1.8, '#5fe07a');
+    } else {
+      circle(0, -17, 4.5, '#c3cad3'); circle(0, -17, 2.5, Math.floor(G.t * 3) % 2 ? '#5fe07a' : '#2f8a45');
+    }
+    ctx.fillStyle = noel ? '#e6ebf0' : '#5d6772'; ctx.font = 'bold 7px Segoe UI'; ctx.textAlign = 'center';
+    ctx.save(); ctx.scale(d, 1); ctx.fillText(noel ? 'NOEL' : 'SONIA', 0, -7); ctx.restore();
     ctx.restore();
     return;
   }
@@ -1047,7 +1059,7 @@ function render() {
     rowEnd[r] = left + w; labelRow.set(u, r);
   }
   for (const u of G.units) {
-    const s = u.def.scale || 1, top = GROUND - (u.lift || 0) - (u.look.crawl ? 58 : u.look.kind === 'person' ? 104 : 60) * s - (u.look.fly ? 20 : 0);
+    const s = u.def.scale || 1, top = GROUND - (u.lift || 0) - (u.look.crawl ? 58 : u.look.kind === 'person' ? 104 : u.look.kind === 'robo' ? 40 : 60) * s - (u.look.fly ? 20 : 0);
     if (u.happy) {
       ctx.fillStyle = '#e8578a'; ctx.font = 'bold 18px Segoe UI'; ctx.textAlign = 'center';
       ctx.fillText('♥', u.x - 8, top - 6 - Math.abs(Math.sin(u.walk)) * 10); ctx.fillText('♥', u.x + 10, top - 14 - Math.abs(Math.cos(u.walk)) * 8);
@@ -1236,7 +1248,7 @@ function showHow() {
   showOv('<h2>How to play</h2><ul class="how">' +
     '<li>The grandkids walk from the playroom on the right toward the cookie cupboard on the left. If they reach it, they eat cookies. No cookies left means you lose.</li>' +
     '<li>Send helpers (keys 1, 2, 3). Each costs 🪙 coins and is trained in the "On the way" queue (up to 5).</li>' +
-    '<li>Nobody hits anyone: ' + esc(S.gm) + ' hands out cookie dough, the pets lick and cuddle. A grandkid whose energy runs out runs back home happy and gives you 🪙 coins and ⭐ stars. Helpers who get tired go home happy too, for a cup of tea.</li>' +
+    '<li>Nobody hits anyone: ' + esc(S.gm) + ' hands out cookie dough, the robot cleaners bump into them. A grandkid whose energy runs out runs back home happy and gives you 🪙 coins and ⭐ stars. Helpers who get tired go home happy too, for a cup of tea.</li>' +
     '<li>Turrets on top of the cupboard (T) fire at anything that comes close. There are two shelves.</li>' +
     '<li>Collect ⭐ stars to move to the next age (E): better helpers, a better turret and a new special.</li>' +
     '<li>Specials (S): 😴 Nap Time, 🛁 Bath Time, 🥦 Broccoli Rain. They recharge after 60 seconds.</li>' +
@@ -1449,6 +1461,7 @@ else if (AUTOTEST && /shot/.test(location.search)) {
   G.turrets = [{ def: AGES[0].turret, cd: 1, paid: 80 }, { def: AGES[2].turret, cd: 1, paid: 300 }];
   fire(SLOTS[0].x + 120, SLOTS[0].y - 20, 'p', G.units.find(u => u.side === 'k' && !u.asleep), 1, 'fries');
   fire(SLOTS[1].x + 160, SLOTS[1].y - 10, 'p', G.units.find(u => u.side === 'k' && !u.asleep), 1, 'smoke');
+  const r1 = spawnDefender(AGES[0].units[2]); r1.x = 250; const r2 = spawnDefender(AGES[1].units[2]); r2.x = 320; const r3 = spawnDefender(AGES[2].units[2]); r3.x = 640;
   const baby = spawnKid(S.roster.find(r => r.type === 'little'), 0, 0); baby.x = 820;
   const climber = spawnKid(S.roster.filter(r => r.type === 'little')[1], 0, 0); climber.x = DW_X; climber.dwDone = true; climber.climbT = 1.4; climber.lift = 34;
   G.units = G.units.filter(o => Math.abs(o.x - MIX_X) > 70 || o.asleep);
