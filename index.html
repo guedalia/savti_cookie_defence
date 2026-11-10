@@ -442,6 +442,22 @@ function stepUnit(u, dt) {
     if (u.talkT <= 0) { talk(u, pick(PHRASES)); u.talkT = rand(5, 11); }
   }
   u.cd = Math.max(0, u.cd - dt);
+  if (u.climbT > 0) {
+    u.climbT -= dt;
+    u.lift = 34 * Math.min(1, (CLIMB_T - u.climbT) * 3, Math.max(0, u.climbT) * 3);
+    if (u.climbT <= 0) u.lift = 0;
+    return;
+  }
+  if (u.look.crawl && u.side === 'k' && !u.dwDone && u.x <= DW_X + 4) {
+    u.dwDone = true;
+    if (Math.random() < 0.5) {
+      u.climbT = CLIMB_T; u.x = DW_X;
+      const saba = G.units.find(o => o.side === 'p' && !o.asleep && o.look.bald);
+      if (saba) { saba.bubble = { text: 'dishwasher!', t: 2.2 }; if (Math.random() < 0.6) speak('dishwasher!', 0.6); }
+      else G.texts.push({ x: DW_X, y: GROUND - 150, text: 'dishwasher!', c: '#4a7fc1', t: 1.4 });
+      return;
+    }
+  }
   if (u.stun > 0) { u.stun -= dt; return; }
   let sf = 1;
   if (u.slowT > 0) { u.slowT -= dt; sf = u.slowF; }
@@ -449,6 +465,7 @@ function stepUnit(u, dt) {
   let enemy = null, ed = Infinity, allyGap = Infinity;
   for (const o of G.units) {
     if (o === u || o.asleep) continue;
+    if (o.climbT > 0 && o.side === u.side) continue;
     const rel = (o.x - u.x) * d;
     if (o.side === u.side) { if (rel > 0 && rel < allyGap) allyGap = rel; }
     else if (rel > -12 && rel < ed) { ed = rel; enemy = o; }
@@ -619,6 +636,30 @@ function buildBg() {
   for (let i = 0; i < 30; i++) { const y = GROUND + 22 * (i % 4), x = (i * 173) % W; b.beginPath(); b.moveTo(x, y); b.lineTo(x, y + 22); b.stroke(); }
   b.fillStyle = 'rgba(140,190,240,.35)'; b.beginPath(); b.ellipse(760, GROUND + 40, 260, 26, 0, 0, TAU); b.fill();
   b.fillStyle = '#a5794f'; b.fillRect(0, GROUND - 6, W, 8);
+  drawDishwasher(b);
+}
+const DW_X = 640, CLIMB_T = 2.8;
+function drawDishwasher(b) {
+  const x0 = DW_X - 48, x1 = DW_X + 48, top = GROUND - 128;
+  b.fillStyle = '#b9c0c9'; b.fillRect(x0 - 4, top - 6, x1 - x0 + 8, 8);
+  b.fillStyle = '#dfe4ea'; b.fillRect(x0, top, x1 - x0, GROUND - top);
+  b.fillStyle = '#4a525c'; b.fillRect(x0, top, x1 - x0, 16);
+  b.fillStyle = '#7fe08f'; b.beginPath(); b.arc(x1 - 6, top + 8, 2.5, 0, TAU); b.fill();
+  b.fillStyle = '#5d6772'; b.fillRect(x0 + 6, top + 22, x1 - x0 - 12, GROUND - top - 22);
+  b.strokeStyle = '#c3cad3'; b.lineWidth = 2;
+  for (const ry of [top + 58, GROUND - 6]) {
+    b.beginPath(); b.moveTo(x0 + 8, ry); b.lineTo(x1 - 8, ry); b.stroke();
+    for (let x = x0 + 12; x < x1 - 8; x += 9) { b.beginPath(); b.moveTo(x, ry); b.lineTo(x, ry - 12); b.stroke(); }
+  }
+  b.fillStyle = '#ffffff';
+  for (let i = 0; i < 4; i++) { b.beginPath(); b.ellipse(x0 + 22 + i * 17, top + 44, 4, 14, 0, 0, TAU); b.fill(); }
+  b.fillStyle = '#f2b134'; b.fillRect(x0 + 16, GROUND - 38, 10, 18); b.fillStyle = '#7fb3e8'; b.fillRect(x1 - 30, GROUND - 34, 12, 14);
+  b.fillStyle = '#c9cfd7';
+  b.beginPath(); b.moveTo(x0, GROUND); b.lineTo(x1, GROUND); b.lineTo(x1 + 22, GROUND + 30); b.lineTo(x0 - 22, GROUND + 30); b.closePath(); b.fill();
+  b.strokeStyle = '#9aa3ad'; b.lineWidth = 2; b.stroke();
+  b.strokeStyle = '#eef1f5'; b.lineWidth = 2;
+  b.beginPath(); b.moveTo(x0 - 6, GROUND + 16); b.lineTo(x1 + 6, GROUND + 16); b.stroke();
+  b.fillStyle = '#e6ebf0'; b.font = 'bold 10px Segoe UI'; b.textAlign = 'center'; b.fillText('DISHWASHER', DW_X - 2, top + 12);
 }
 buildBg();
 
@@ -706,7 +747,7 @@ function drawCrawler(u) {
   const still = u.stun > 0 || (u.asleep && !u.happy);
   const sw = still ? 0 : Math.sin(u.walk * 1.6) * 6, bob = still ? 0 : Math.abs(Math.sin(u.walk * 1.6)) * 2;
   ctx.save();
-  ctx.translate(u.x - (u.hurt > 0 ? d * 3 : 0), GROUND - bob);
+  ctx.translate(u.x - (u.hurt > 0 ? d * 3 : 0), GROUND - bob - (u.lift || 0));
   ctx.scale(d * s, s);
   ctx.lineCap = 'round';
   ctx.strokeStyle = '#f1c3a0'; ctx.lineWidth = 7;
@@ -880,10 +921,10 @@ function render() {
   drawFort();
   drawCupboard();
   if (!G) return;
-  const order = G.units.slice().sort((a, b) => (b.asleep - a.asleep) || ((a.look.fly ? 1 : 0) - (b.look.fly ? 1 : 0)));
+  const order = G.units.slice().sort((a, b) => (b.asleep - a.asleep) || ((a.climbT > 0) - (b.climbT > 0)) || ((a.look.fly ? 1 : 0) - (b.look.fly ? 1 : 0)));
   for (const u of order) (u.look.kind === 'person' ? drawPerson : drawAnimal)(u);
   for (const u of G.units) {
-    const s = u.def.scale || 1, top = GROUND - (u.look.crawl ? 58 : u.look.kind === 'person' ? 104 : 60) * s - (u.look.fly ? 20 : 0);
+    const s = u.def.scale || 1, top = GROUND - (u.lift || 0) - (u.look.crawl ? 58 : u.look.kind === 'person' ? 104 : 60) * s - (u.look.fly ? 20 : 0);
     if (u.happy) {
       ctx.fillStyle = '#e8578a'; ctx.font = 'bold 18px Segoe UI'; ctx.textAlign = 'center';
       ctx.fillText('♥', u.x - 8, top - 6 - Math.abs(Math.sin(u.walk)) * 10); ctx.fillText('♥', u.x + 10, top - 14 - Math.abs(Math.cos(u.walk)) * 8);
@@ -928,7 +969,7 @@ function render() {
   for (const u of G.units) {
     if (!u.bubble || u.asleep) continue;
     const s = u.def.scale || 1;
-    drawBubble(u.x, GROUND - (u.look.crawl ? 78 : 128) * s - (u.look.fly ? 20 : 0), u.bubble.text);
+    drawBubble(u.x, GROUND - (u.lift || 0) - (u.look.crawl ? 78 : 128) * s - (u.look.fly ? 20 : 0), u.bubble.text);
   }
   if (G.nightT > 0) {
     const a = Math.min(1, G.nightT, 4 - G.nightT + 0.01);
@@ -1205,6 +1246,7 @@ if (AUTOTEST && /shot/.test(location.search)) {
   hideOv();
   for (let i = 0; i < 30 * 42; i++) { if (i % 60 === 0) autoPlay(); update(1 / 30); }
   const baby = spawnKid(S.roster.find(r => r.type === 'little'), 0, 0); baby.x = 820;
+  const climber = spawnKid(S.roster.filter(r => r.type === 'little')[1], 0, 0); climber.x = DW_X; climber.dwDone = true; climber.climbT = 1.4; climber.lift = 34;
   const runner = spawnKid(S.roster[0], 0, 0); runner.x = 960; putToSleep(runner);
   const gm = spawnDefender(AGES[G.age].units[0]); gm.x = 420; putToSleep(gm);
   const pet = spawnDefender(AGES[G.age].units[2]); pet.x = 520; putToSleep(pet);
