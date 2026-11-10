@@ -255,7 +255,7 @@ function stopMusic() {
 }
 
 let lastSpeak = 0;
-function speak(text) {
+function speak(text, pitch) {
   if (!S.sound || !S.voice || AUTOTEST || !window.speechSynthesis) return;
   const now = performance.now();
   if (now - lastSpeak < 7000) return;
@@ -263,9 +263,10 @@ function speak(text) {
   try {
     const u = new SpeechSynthesisUtterance(text.replace('!', ''));
     const vs = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang));
-    const v = vs.find(v => /child|kid|junior/i.test(v.name)) || vs.find(v => /female|zira|aria|jenny|samantha|susan|hazel|libby|sonia/i.test(v.name));
+    const v = pitch ? vs.find(v => /male|david|mark|guy|ryan|george|daniel|alex/i.test(v.name) && !/female/i.test(v.name))
+      : vs.find(v => /child|kid|junior/i.test(v.name)) || vs.find(v => /female|zira|aria|jenny|samantha|susan|hazel|libby|sonia/i.test(v.name));
     if (v) u.voice = v;
-    u.pitch = 2; u.rate = 1.25; u.volume = 0.7;
+    u.pitch = pitch || 2; u.rate = pitch ? 1 : 1.25; u.volume = 0.8;
     speechSynthesis.speak(u);
   } catch (e) {}
 }
@@ -372,7 +373,13 @@ function hit(tgt, dmg, src) {
     if (tgt.asleep) return;
     tgt.hp -= dmg;
     tgt.hurt = 0.15;
-    if (tgt.hp <= 0) putToSleep(tgt);
+    if (tgt.hp <= 0) {
+      putToSleep(tgt);
+      if (src && src.side === 'p' && src.look.bald && !src.asleep) {
+        src.bubble = { text: 'dishwasher!', t: 2.2 };
+        if (Math.random() < 0.6) speak('dishwasher!', 0.6);
+      }
+    }
   }
 }
 function putToSleep(u) {
@@ -394,14 +401,14 @@ function putToSleep(u) {
     beep(1046, 0.08, 'sine', 0.025); setTimeout(() => beep(1318, 0.1, 'sine', 0.025), 90);
   }
 }
-function fire(x, y, side, tgt, dmg, kind, slow) {
-  G.projs.push({ x, y, side, tgt, dmg, kind, slow, spin: 0, dead: false });
+function fire(x, y, side, tgt, dmg, kind, slow, src) {
+  G.projs.push({ x, y, side, tgt, dmg, kind, slow, src: src || null, spin: 0, dead: false });
 }
 function attack(u, target) {
   u.atk = 1;
   const baseT = u.side === 'p' ? 'kbase' : 'pbase';
   const tg = target === 'base' ? baseT : target;
-  if (u.def.proj) fire(u.x + u.dir * 14, GROUND - ((u.look.fly ? 95 : 60) * (u.def.scale || 1)), u.side, tg, u.def.dmg, u.def.proj, u.def.slow);
+  if (u.def.proj) fire(u.x + u.dir * 14, GROUND - ((u.look.fly ? 95 : 60) * (u.def.scale || 1)), u.side, tg, u.def.dmg, u.def.proj, u.def.slow, u);
   else {
     if (u.look.prop === 'dough' || u.look.prop === 'tray') {
       const tx = typeof tg === 'object' ? tg.x : u.x + u.dir * 30;
@@ -522,7 +529,7 @@ function update(dt) {
     const dx = tx - p.x, dy = ty - p.y, dist = Math.hypot(dx, dy), sp = 520 * dt;
     p.spin += dt * 8;
     if (dist <= sp + 6) {
-      hit(p.tgt, p.dmg, null);
+      hit(p.tgt, p.dmg, p.src);
       if (p.slow && typeof p.tgt === 'object') { p.tgt.slowT = 1.6; p.tgt.slowF = p.slow; }
       p.dead = true;
     } else { p.x += dx / dist * sp; p.y += dy / dist * sp; }
